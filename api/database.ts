@@ -102,11 +102,38 @@ function initTables() {
 
     CREATE TABLE IF NOT EXISTS notification (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      adjustment_id INTEGER NOT NULL REFERENCES adjustment(id),
-      class_id INTEGER NOT NULL REFERENCES class(id),
+      type TEXT NOT NULL DEFAULT 'adjustment',
+      adjustment_id INTEGER REFERENCES adjustment(id),
+      exam_id INTEGER REFERENCES exam(id),
+      course_id INTEGER REFERENCES course(id),
+      class_id INTEGER REFERENCES class(id),
+      student_id INTEGER REFERENCES student(id),
       message TEXT NOT NULL,
       is_read INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS course_evaluation (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL REFERENCES student(id),
+      course_id INTEGER NOT NULL REFERENCES course(id),
+      content_score INTEGER NOT NULL DEFAULT 0,
+      method_score INTEGER NOT NULL DEFAULT 0,
+      interaction_score INTEGER NOT NULL DEFAULT 0,
+      workload_score INTEGER NOT NULL DEFAULT 0,
+      comment TEXT DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(student_id, course_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS course_resource (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      course_id INTEGER NOT NULL REFERENCES course(id),
+      file_name TEXT NOT NULL,
+      file_type TEXT NOT NULL DEFAULT 'pdf',
+      file_url TEXT NOT NULL DEFAULT '',
+      uploaded_by INTEGER NOT NULL REFERENCES teacher(id),
+      uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS student (
@@ -280,7 +307,40 @@ function seedData() {
     ]
     const insertBooking = db.prepare('INSERT INTO room_booking (applicant, applicant_type, classroom_id, booking_date, period_start, period_end, purpose, attendees, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
     bookings.forEach(b => insertBooking.run(b.applicant, b.applicant_type, b.classroom_id, b.booking_date, b.period_start, b.period_end, b.purpose, b.attendees, b.status))
+
+    const evaluations = [
+      { student_id: 1, course_id: 1, content_score: 5, method_score: 4, interaction_score: 4, workload_score: 3, comment: '课程内容丰富，逻辑清晰' },
+      { student_id: 2, course_id: 1, content_score: 4, method_score: 5, interaction_score: 4, workload_score: 3, comment: '老师讲解生动，互动多' },
+      { student_id: 3, course_id: 2, content_score: 5, method_score: 4, interaction_score: 3, workload_score: 5, comment: '高数难度大，作业多但收获大' },
+      { student_id: 6, course_id: 8, content_score: 4, method_score: 4, interaction_score: 5, workload_score: 3, comment: '项目实践有趣，团队协作好' },
+      { student_id: 1, course_id: 4, content_score: 4, method_score: 3, interaction_score: 4, workload_score: 4, comment: '操作系统概念讲解清晰' },
+    ]
+    const insertEval = db.prepare('INSERT INTO course_evaluation (student_id, course_id, content_score, method_score, interaction_score, workload_score, comment) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    evaluations.forEach(e => insertEval.run(e.student_id, e.course_id, e.content_score, e.method_score, e.interaction_score, e.workload_score, e.comment))
+
+    const resources = [
+      { course_id: 1, file_name: '数据结构第一章-绪论.pdf', file_type: 'pdf', file_url: 'https://example.com/ds-ch1.pdf', uploaded_by: 1 },
+      { course_id: 1, file_name: '数据结构第二章-线性表.pdf', file_type: 'pdf', file_url: 'https://example.com/ds-ch2.pdf', uploaded_by: 1 },
+      { course_id: 2, file_name: '高等数学上册课件.pdf', file_type: 'pdf', file_url: 'https://example.com/math1.pdf', uploaded_by: 2 },
+      { course_id: 4, file_name: '操作系统课件合集.pdf', file_type: 'pdf', file_url: 'https://example.com/os-all.pdf', uploaded_by: 4 },
+      { course_id: 6, file_name: '数据库原理实验指导.pdf', file_type: 'pdf', file_url: 'https://example.com/db-lab.pdf', uploaded_by: 1 },
+    ]
+    const insertResource = db.prepare('INSERT INTO course_resource (course_id, file_name, file_type, file_url, uploaded_by) VALUES (?, ?, ?, ?, ?)')
+    resources.forEach(r => insertResource.run(r.course_id, r.file_name, r.file_type, r.file_url, r.uploaded_by))
+
+    const notifications = [
+      { type: 'exam', exam_id: 1, class_id: 1, message: '考试通知：数据结构与算法期末考试定于2025-07-01 09:00在A201举行', is_read: 0 },
+      { type: 'exam', exam_id: 2, class_id: 1, message: '考试通知：高等数学A期末考试定于2025-07-02 09:00在A201举行', is_read: 0 },
+      { type: 'selection', course_id: 4, class_id: 1, message: '选课通知：操作系统课程目前选课名额有变动，请关注', is_read: 1 },
+      { type: 'selection', course_id: 6, class_id: 3, message: '选课通知：数据库原理课程目前选课名额有变动，请关注', is_read: 0 },
+    ]
+    const insertNotification = db.prepare('INSERT INTO notification (type, adjustment_id, exam_id, course_id, class_id, message, is_read) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    notifications.forEach(n => insertNotification.run(n.type, n.adjustment_id || null, n.exam_id || null, n.course_id || null, n.class_id, n.message, n.is_read))
   })
 
-  insert()
+  try {
+    insert()
+  } catch (e: any) {
+    console.error('Seed data error:', e.message)
+  }
 }

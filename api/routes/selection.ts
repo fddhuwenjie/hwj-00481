@@ -157,10 +157,9 @@ router.post('/drop', (req: Request, res: Response) => {
   const semester = db.prepare('SELECT * FROM semester WHERE is_current = 1').get() as any
   if (semester) {
     const startDate = new Date(semester.start_date)
-    const today = new Date()
-    const oneWeekBeforeStart = new Date(startDate.getTime() - 7 * 24 * 60 * 60 * 1000)
-    if (today >= oneWeekBeforeStart) {
-      res.status(400).json({ success: false, error: '退选已截止（开课前一周不可退选）' })
+    const oneWeekBefore = new Date(startDate.getTime() - 7 * 24 * 60 * 60 * 1000)
+    if (new Date() > oneWeekBefore && new Date() < startDate) {
+      res.status(400).json({ success: false, error: '开课前一周内不可退选' })
       return
     }
   }

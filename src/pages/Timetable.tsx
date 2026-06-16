@@ -37,7 +37,6 @@ interface TimetableEntry {
   period_start: number;
   period_end: number;
   week_type?: 'odd' | 'even' | string;
-  entry_type?: 'course' | 'exam' | 'booking' | string;
 }
 
 interface DropdownItem {
@@ -105,19 +104,7 @@ export default function Timetable() {
     }
   };
 
-  const getCourseColor = (course_id: number, entry_type?: string) => {
-    if (entry_type === 'exam') return 'bg-red-100';
-    if (entry_type === 'booking') return 'bg-purple-100';
-    return COLOR_PALETTE[course_id % COLOR_PALETTE.length];
-  };
-
-  const getEntryBadge = (entry: TimetableEntry) => {
-    if (entry.entry_type === 'exam') return { text: '考试', className: 'bg-red-200 text-red-700' };
-    if (entry.entry_type === 'booking') return { text: '活动', className: 'bg-purple-200 text-purple-700' };
-    if (entry.week_type === 'odd') return { text: '单周', className: 'bg-blue-200 text-blue-700' };
-    if (entry.week_type === 'even') return { text: '双周', className: 'bg-purple-200 text-purple-700' };
-    return null;
-  };
+  const getCourseColor = (courseId: number) => COLOR_PALETTE[courseId % COLOR_PALETTE.length];
 
   const getPairIndex = (period: number) => Math.floor((period - 1) / 2);
 
@@ -262,21 +249,25 @@ export default function Timetable() {
 
                     if (cell) {
                       const { entry, rowSpan } = cell;
-                      const badge = getEntryBadge(entry);
                       return (
                         <td
                           key={key}
                           rowSpan={rowSpan}
-                          className={`border border-gray-200 px-2 py-2 align-top ${getCourseColor(entry.course_id, entry.entry_type)}`}
+                          className={`border border-gray-200 px-2 py-2 align-top ${getCourseColor(entry.course_id)}`}
                         >
                           <div className="text-sm font-bold text-gray-800 leading-tight">
                             {entry.course_name}
                           </div>
                           <div className="text-xs text-gray-600 mt-0.5">{entry.classroom_code}</div>
                           <div className="text-xs text-gray-600">{entry.teacher_name}</div>
-                          {badge && (
-                            <span className={`inline-block mt-0.5 text-[10px] px-1.5 py-0.5 rounded font-medium ${badge.className}`}>
-                              {badge.text}
+                          {entry.week_type === 'odd' && (
+                            <span className="inline-block mt-0.5 text-[10px] px-1.5 py-0.5 rounded bg-blue-200 text-blue-700 font-medium">
+                              (单周)
+                            </span>
+                          )}
+                          {entry.week_type === 'even' && (
+                            <span className="inline-block mt-0.5 text-[10px] px-1.5 py-0.5 rounded bg-purple-200 text-purple-700 font-medium">
+                              (双周)
                             </span>
                           )}
                         </td>

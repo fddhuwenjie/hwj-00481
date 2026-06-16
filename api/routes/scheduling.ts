@@ -55,8 +55,7 @@ function checkConflict(
   classId: number,
   classroomId: number,
   existing: ExistingSchedule[],
-  weekType: string,
-  examConflicts: { classroom_id: number; day_of_week: number; period_start: number; period_end: number }[] = []
+  weekType: string
 ): { conflict: boolean; reason?: string } {
   for (const ex of existing) {
     if (ex.day_of_week !== slot.day_of_week) continue
@@ -77,24 +76,13 @@ function checkConflict(
       return { conflict: true, reason: `教室占用冲突: 周${slot.day_of_week} 第${slot.period_start}-${slot.period_end}节` }
     }
   }
-
-  for (const exam of examConflicts) {
-    if (exam.classroom_id !== classroomId) continue
-    if (exam.day_of_week !== slot.day_of_week) continue
-    const periodsOverlap = !(slot.period_end < exam.period_start || slot.period_start > exam.period_end)
-    if (periodsOverlap) {
-      return { conflict: true, reason: `教室有考试安排: 周${slot.day_of_week} 第${slot.period_start}-${slot.period_end}节` }
-    }
-  }
-
   return { conflict: false }
 }
 
 function findSlot(
   course: CourseInfo,
   classrooms: ClassroomInfo[],
-  existing: ExistingSchedule[],
-  examConflicts: { classroom_id: number; day_of_week: number; period_start: number; period_end: number }[] = []
+  existing: ExistingSchedule[]
 ): ScheduleSlot[] | null {
   const compatibleClassrooms = classrooms
     .filter(cr => {
@@ -127,7 +115,7 @@ function findSlot(
 
         for (const cr of compatibleClassrooms) {
           const slot = { day_of_week: day, period_start: pStart, period_end: pEnd }
-          const check = checkConflict(slot, course.teacher_id, course.class_id, cr.id, existing, 'all', examConflicts)
+          const check = checkConflict(slot, course.teacher_id, course.class_id, cr.id, existing, 'all')
           if (!check.conflict) {
             result.push({
               course_id: course.id,
@@ -199,45 +187,6 @@ router.post('/auto', (req: Request, res: Response) => {
     JOIN course c ON s.course_id = c.id
   `).all() as ExistingSchedule[]
 
-  const semester = db.prepare('SELECT * FROM semester WHERE is_current = 1').get() as any
-  const examConflicts: { classroom_id: number; day_of_week: number; period_start: number; period_end: number }[] = []
-
-  if (semester) {
-    const startDate = new Date(semester.start_date)
-    const endDate = new Date(semester.end_date)
-    const toDateStr = (d: Date) => d.toISOString().split('T')[0]
-
-    const exams = db.prepare(`
-      SELECT * FROM exam WHERE exam_date >= ? AND exam_date <= ?
-    `).all(toDateStr(startDate), toDateStr(endDate)) as any[]
-
-    for (const exam of exams) {
-      const examDate = new Date(exam.exam_date)
-      const dayOfWeek = examDate.getDay() || 7
-      const hour = parseInt(exam.start_time.split(':')[0])
-      const minute = parseInt(exam.start_time.split(':')[1])
-      const timeMinutes = hour * 60 + minute
-
-      let periodStart = 1
-      if (timeMinutes >= 480 && timeMinutes < 600) periodStart = 1
-      else if (timeMinutes >= 600 && timeMinutes < 720) periodStart = 3
-      else if (timeMinutes >= 780 && timeMinutes < 900) periodStart = 5
-      else if (timeMinutes >= 900 && timeMinutes < 1020) periodStart = 7
-      else if (timeMinutes >= 1020 && timeMinutes < 1140) periodStart = 9
-      else periodStart = 11
-
-      const durationPeriods = Math.ceil(exam.duration / 90)
-      const periodEnd = periodStart + durationPeriods * 2 - 1
-
-      examConflicts.push({
-        classroom_id: exam.classroom_id,
-        day_of_week: dayOfWeek,
-        period_start: periodStart,
-        period_end: periodEnd
-      })
-    }
-  }
-
   const allNewSlots: ScheduleSlot[] = []
   const failedCourses: { course: CourseInfo; reason: string }[] = []
   const tempExisting = [...existingSchedules]
@@ -248,11 +197,11 @@ router.post('/auto', (req: Request, res: Response) => {
   })
 
   for (const course of sortedCourses) {
-    const slots = findSlot(course, classrooms, tempExisting, examConflicts)
+    const slots = findSlot(course, classrooms, tempExisting)
     if (slots) {
       allNewSlots.push(...slots)
     } else {
-      failedCourses.push({ course, reason: '无法找到满足条件的时间和教室（可能有考试占用）' })
+      failedCourses.push({ course, reason: '无法找到满足条件的时间和教室' })
     }
   }
 

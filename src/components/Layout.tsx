@@ -13,6 +13,9 @@ import {
   ClipboardList,
   FileText,
   CalendarCheck,
+  Star,
+  FolderOpen,
+  Bell,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { cn } from '@/lib/utils';
@@ -28,6 +31,8 @@ const navItems = [
   { label: '选课中心', icon: ClipboardList, path: '/selection' },
   { label: '考试管理', icon: FileText, path: '/exams' },
   { label: '教室预约', icon: CalendarCheck, path: '/bookings' },
+  { label: '教学评价', icon: Star, path: '/evaluation' },
+  { label: '资源通知', icon: FolderOpen, path: '/resources' },
   { label: '统计分析', icon: BarChart3, path: '/statistics' },
 ];
 
@@ -47,24 +52,44 @@ const pageTitles: Record<string, string> = {
   '/selection': '选课中心',
   '/exams': '考试管理',
   '/bookings': '教室预约',
+  '/evaluation': '教学评价',
+  '/resources': '资源通知',
   '/statistics': '统计分析',
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { viewRole, setViewRole, currentWeek, setCurrentWeek } = useAppStore();
+  const { viewRole, setViewRole, currentWeek, setCurrentWeek, unreadCount, fetchUnreadCount, allNotifications, fetchAllNotifications, markOneRead, markAllRead } = useAppStore();
   const [roleOpen, setRoleOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const roleRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (roleRef.current && !roleRef.current.contains(e.target as Node)) {
         setRoleOpen(false);
       }
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(() => fetchUnreadCount(), 30000);
+    return () => clearInterval(interval);
+  }, [fetchUnreadCount]);
+
+  const handleNotifToggle = () => {
+    if (!notifOpen) {
+      fetchAllNotifications();
+    }
+    setNotifOpen(!notifOpen);
+  };
 
   const pageTitle = pageTitles[location.pathname] || '课程调度系统';
 
@@ -152,8 +177,76 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#f5f7fa' }}>
         <header className="flex items-center justify-between px-6 py-4 bg-white shadow-sm">
           <h1 className="text-lg font-semibold text-gray-800">{pageTitle}</h1>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">当前周次</span>
+          <div className="flex items-center gap-4">
+            <div ref={notifRef} className="relative">
+              <button
+                onClick={handleNotifToggle}
+                className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <Bell size={20} className="text-gray-600" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-2 w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50 max-h-[480px] overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-gray-800">通知中心</span>
+                    <div className="flex items-center gap-2">
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={() => markAllRead()}
+                          className="text-xs text-blue-500 hover:text-blue-700 transition-colors"
+                        >
+                          全部已读
+                        </button>
+                      )}
+                      <Link
+                        to="/resources"
+                        onClick={() => setNotifOpen(false)}
+                        className="text-xs text-orange-500 hover:text-orange-700 transition-colors"
+                      >
+                        查看全部
+                      </Link>
+                    </div>
+                  </div>
+                  <div className="overflow-y-auto max-h-[400px]">
+                    {allNotifications.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-gray-400 text-sm">暂无通知</div>
+                    ) : (
+                      allNotifications.slice(0, 10).map((n: any) => (
+                        <div
+                          key={n.id}
+                          onClick={() => !n.is_read && markOneRead(n.id)}
+                          className={cn(
+                            'px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors',
+                            !n.is_read && 'bg-blue-50/50 border-l-2 border-l-blue-500'
+                          )}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className={cn('text-sm', !n.is_read ? 'text-gray-800 font-medium' : 'text-gray-600')}>
+                                {n.message}
+                              </p>
+                              <span className="text-xs text-gray-400 mt-1 block">
+                                {n.created_at || n.time || ''}
+                              </span>
+                            </div>
+                            {!n.is_read && (
+                              <span className="mt-1.5 w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">当前周次</span>
             <select
               value={currentWeek}
               onChange={(e) => setCurrentWeek(Number(e.target.value))}
@@ -165,6 +258,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 </option>
               ))}
             </select>
+            </div>
           </div>
         </header>
 

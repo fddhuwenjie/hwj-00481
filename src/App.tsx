@@ -10,6 +10,8 @@ import Statistics from "@/pages/Statistics"
 import CourseSelection from "@/pages/CourseSelection"
 import ExamManagement from "@/pages/ExamManagement"
 import RoomBooking from "@/pages/RoomBooking"
+import TeachingEvaluation from "@/pages/TeachingEvaluation"
+import CourseResources from "@/pages/CourseResources"
 
 export default function App() {
   return (
@@ -26,6 +28,8 @@ export default function App() {
           <Route path="/selection" element={<CourseSelection />} />
           <Route path="/exams" element={<ExamManagement />} />
           <Route path="/bookings" element={<RoomBooking />} />
+          <Route path="/evaluation" element={<TeachingEvaluation />} />
+          <Route path="/resources" element={<CourseResources />} />
         </Routes>
       </Layout>
     </Router>

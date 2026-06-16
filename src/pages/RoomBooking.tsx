@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
 import {
   Building2, Calendar, Clock, Plus, CheckCircle2, XCircle, Search,
   User, Users, FileText, Loader2,
@@ -45,7 +44,6 @@ const emptyForm: BookingForm = {
 
 export default function RoomBooking() {
   const { classrooms, bookings, viewRole, fetchClassrooms, fetchBookings } = useAppStore();
-  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'apply' | 'approval'>('apply');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<BookingForm>(emptyForm);
@@ -60,19 +58,6 @@ export default function RoomBooking() {
   useEffect(() => {
     fetchClassrooms();
   }, [fetchClassrooms]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const classroomId = params.get('classroom');
-    const date = params.get('date');
-    if (classroomId || date) {
-      const newForm = { ...emptyForm };
-      if (classroomId) newForm.classroom_id = Number(classroomId);
-      if (date) newForm.booking_date = date;
-      setForm(newForm);
-      setShowModal(true);
-    }
-  }, [location.search]);
 
   const loadBookings = useCallback(async () => {
     await fetchBookings();

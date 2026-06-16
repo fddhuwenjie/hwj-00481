@@ -18,6 +18,8 @@ interface AppState {
   selectionPeriods: any[];
   exams: any[];
   bookings: any[];
+  allNotifications: any[];
+  unreadCount: number;
 
   fetchCourses: () => Promise<void>;
   fetchClassrooms: () => Promise<void>;
@@ -35,6 +37,10 @@ interface AppState {
   fetchSelectionPeriods: () => Promise<void>;
   fetchExams: () => Promise<void>;
   fetchBookings: () => Promise<void>;
+  fetchAllNotifications: () => Promise<void>;
+  fetchUnreadCount: () => Promise<void>;
+  markAllRead: () => Promise<void>;
+  markOneRead: (id: number) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -54,6 +60,8 @@ export const useAppStore = create<AppState>((set) => ({
   selectionPeriods: [],
   exams: [],
   bookings: [],
+  allNotifications: [],
+  unreadCount: 0,
 
   fetchCourses: async () => {
     const courses = await api.getCourses();
@@ -114,5 +122,38 @@ export const useAppStore = create<AppState>((set) => ({
   fetchBookings: async () => {
     const bookings = await api.getBookings();
     set({ bookings });
+  },
+
+  fetchAllNotifications: async () => {
+    const data = await api.getAllNotifications();
+    const allNotifications = Array.isArray(data) ? data : [];
+    set({ allNotifications });
+  },
+
+  fetchUnreadCount: async () => {
+    try {
+      const data = await api.getUnreadNotificationCount();
+      set({ unreadCount: data?.count ?? 0 });
+    } catch {
+      set({ unreadCount: 0 });
+    }
+  },
+
+  markAllRead: async () => {
+    await api.markAllNotificationsRead();
+    set((state) => ({
+      unreadCount: 0,
+      allNotifications: state.allNotifications.map((n: any) => ({ ...n, is_read: 1 })),
+    }));
+  },
+
+  markOneRead: async (id: number) => {
+    await api.markNotificationRead(id);
+    set((state) => ({
+      unreadCount: Math.max(0, state.unreadCount - 1),
+      allNotifications: state.allNotifications.map((n: any) =>
+        n.id === id ? { ...n, is_read: 1 } : n
+      ),
+    }));
   },
 }));

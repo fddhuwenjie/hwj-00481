@@ -257,3 +257,55 @@ export function checkBookingAvailability(params: any) {
   const query = new URLSearchParams(params).toString();
   return request<any>(`/bookings/check-availability?${query}`);
 }
+
+export function getCourseEvaluations(courseId: number) {
+  return request<any[]>(`/evaluations/courses/${courseId}`);
+}
+
+export function createEvaluation(data: any) {
+  return request<any>('/evaluations', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function getTeacherEvaluations(teacherId: number) {
+  return request<any[]>(`/evaluations/teacher/${teacherId}`);
+}
+
+export function getEvaluationStatistics() {
+  return request<any>('/evaluations/statistics');
+}
+
+export function getStudentEvaluated(studentId: number) {
+  return request<any[]>(`/evaluations/student/${studentId}/evaluated`);
+}
+
+export function getCourseResources(courseId: number) {
+  return request<any[]>(`/resources/course/${courseId}`);
+}
+
+export function createResource(data: any) {
+  return request<any>('/resources', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function deleteResource(id: number) {
+  return request<void>(`/resources/${id}`, { method: 'DELETE' });
+}
+
+export function getAllNotifications() {
+  return request<any[]>('/notifications');
+}
+
+export function getUnreadNotificationCount() {
+  return request<any>('/notifications/unread-count');
+}
+
+export function markNotificationRead(id: number) {
+  return request<any>(`/notifications/${id}/read`, { method: 'PUT', body: JSON.stringify({}) });
+}
+
+export function markAllNotificationsRead() {
+  return request<any>('/notifications/read-all', { method: 'PUT', body: JSON.stringify({}) });
+}
+
+export function createNotification(data: any) {
+  return request<any>('/notifications', { method: 'POST', body: JSON.stringify(data) });
+}

@@ -20,6 +20,9 @@ import statisticsRoutes from './routes/statistics.js'
 import selectionRoutes from './routes/selection.js'
 import examRoutes from './routes/exams.js'
 import bookingRoutes from './routes/bookings.js'
+import evaluationRoutes from './routes/evaluations.js'
+import resourceRoutes from './routes/resources.js'
+import notificationRoutes from './routes/notifications.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -49,6 +52,9 @@ app.use('/api/statistics', statisticsRoutes)
 app.use('/api/selection', selectionRoutes)
 app.use('/api/exams', examRoutes)
 app.use('/api/bookings', bookingRoutes)
+app.use('/api/evaluations', evaluationRoutes)
+app.use('/api/resources', resourceRoutes)
+app.use('/api/notifications', notificationRoutes)
 
 app.use(
   '/api/health',
