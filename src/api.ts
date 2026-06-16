@@ -163,3 +163,97 @@ export function getTeacherWorkload() {
 export function getFreeClassrooms(day: number, period: number) {
   return request<any[]>(`/statistics/free-classrooms?day=${day}&period=${period}`);
 }
+
+export function getSelectionPeriods() {
+  return request<any[]>('/selection/periods');
+}
+
+export function createSelectionPeriod(data: any) {
+  return request<any>('/selection/periods', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function updateSelectionPeriod(id: number, data: any) {
+  return request<any>(`/selection/periods/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export function getActiveSelectionPeriod() {
+  return request<any>('/selection/active-period');
+}
+
+export function getAvailableCourses() {
+  return request<any[]>('/selection/available-courses');
+}
+
+export function getStudents() {
+  return request<any[]>('/selection/students');
+}
+
+export function selectCourse(studentId: number, courseId: number) {
+  return request<any>('/selection/select', { method: 'POST', body: JSON.stringify({ student_id: studentId, course_id: courseId }) });
+}
+
+export function dropCourse(studentId: number, courseId: number) {
+  return request<any>('/selection/drop', { method: 'POST', body: JSON.stringify({ student_id: studentId, course_id: courseId }) });
+}
+
+export function getMyCourses(studentId: number) {
+  return request<any[]>(`/selection/my-courses/${studentId}`);
+}
+
+export function getSelectionStatistics() {
+  return request<any>('/selection/statistics');
+}
+
+export function getExams() {
+  return request<any[]>('/exams');
+}
+
+export function createExam(data: any) {
+  return request<any>('/exams', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function updateExam(id: number, data: any) {
+  return request<any>(`/exams/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export function deleteExam(id: number) {
+  return request<void>(`/exams/${id}`, { method: 'DELETE' });
+}
+
+export function autoArrangeExams(data: any) {
+  return request<any>('/exams/auto-arrange', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function getExamCalendar(month?: string) {
+  const query = month ? `?month=${month}` : '';
+  return request<any>(`/exams/calendar${query}`);
+}
+
+export function occupyClassroomForExam(id: number) {
+  return request<any>(`/exams/${id}/occupy-classroom`, { method: 'PUT', body: JSON.stringify({}) });
+}
+
+export function getBookings() {
+  return request<any[]>('/bookings');
+}
+
+export function createBooking(data: any) {
+  return request<any>('/bookings', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function approveBooking(id: number) {
+  return request<any>(`/bookings/${id}/approve`, { method: 'PUT', body: JSON.stringify({}) });
+}
+
+export function rejectBooking(id: number) {
+  return request<any>(`/bookings/${id}/reject`, { method: 'PUT', body: JSON.stringify({}) });
+}
+
+export function deleteBooking(id: number) {
+  return request<void>(`/bookings/${id}`, { method: 'DELETE' });
+}
+
+export function checkBookingAvailability(params: any) {
+  const query = new URLSearchParams(params).toString();
+  return request<any>(`/bookings/check-availability?${query}`);
+}

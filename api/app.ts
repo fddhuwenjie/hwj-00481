@@ -17,6 +17,9 @@ import timetableRoutes from './routes/timetable.js'
 import schedulingRoutes from './routes/scheduling.js'
 import adjustmentRoutes from './routes/adjustments.js'
 import statisticsRoutes from './routes/statistics.js'
+import selectionRoutes from './routes/selection.js'
+import examRoutes from './routes/exams.js'
+import bookingRoutes from './routes/bookings.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -43,6 +46,9 @@ app.use('/api/timetable', timetableRoutes)
 app.use('/api/scheduling', schedulingRoutes)
 app.use('/api/adjustments', adjustmentRoutes)
 app.use('/api/statistics', statisticsRoutes)
+app.use('/api/selection', selectionRoutes)
+app.use('/api/exams', examRoutes)
+app.use('/api/bookings', bookingRoutes)
 
 app.use(
   '/api/health',

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { Users, Monitor, Plus, Pencil, Trash2, X } from 'lucide-react';
 import * as api from '@/api';
 import { useAppStore } from '@/store';
@@ -68,6 +68,7 @@ interface AvailabilitySlot {
   period: number;
   status?: string;
   courseName?: string;
+  entryType?: string;
 }
 
 interface AvailabilityData {
@@ -182,7 +183,9 @@ export default function Classrooms() {
   const getCellStyle = (cell: AvailabilitySlot | null) => {
     if (!cell) return 'bg-green-100 text-green-800';
     if (cell.status === 'maintenance') return 'bg-red-100 text-red-800';
-    if (cell.status === 'occupied' || cell.courseName) return 'bg-gray-200 text-gray-700';
+    if (cell.entryType === 'exam') return 'bg-red-100 text-red-700';
+    if (cell.entryType === 'booking') return 'bg-purple-100 text-purple-700';
+    if (cell.status === 'occupied' || cell.courseName) return 'bg-blue-100 text-blue-700';
     return 'bg-green-100 text-green-800';
   };
 
@@ -296,21 +299,58 @@ export default function Classrooms() {
       {selectedId !== null && selectedClassroom && (
         <div className="border rounded-xl p-5 bg-white shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              {selectedClassroom.code} 空闲情况
-            </h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold text-gray-900">
+                {selectedClassroom.code} 空闲情况
+              </h2>
+              <button
+                onClick={() => {
+                  const today = new Date();
+                  const dateStr = today.toISOString().split('T')[0];
+                  window.location.href = `/bookings?classroom=${selectedClassroom.id}&date=${dateStr}`;
+                }}
+                className="text-xs px-3 py-1.5 rounded-lg text-white transition-colors"
+                style={{ backgroundColor: '#e8723a' }}
+              >
+                预约该教室
+              </button>
+            </div>
             <button onClick={() => setSelectedId(null)} className="text-gray-400 hover:text-gray-600">
               <X size={20} />
             </button>
           </div>
+
+          <div className="flex items-center gap-4 mb-4 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded bg-green-100 border border-green-200" />
+              <span className="text-gray-600">空闲</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded bg-blue-100 border border-blue-200" />
+              <span className="text-gray-600">课程</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded bg-red-100 border border-red-200" />
+              <span className="text-gray-600">考试</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded bg-purple-100 border border-purple-200" />
+              <span className="text-gray-600">活动</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-4 h-4 rounded bg-red-100 border border-red-200" />
+              <span className="text-gray-600">维修</span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-6 gap-px bg-gray-200 rounded-lg overflow-hidden">
             <div className="bg-gray-50 p-2 text-center text-xs font-medium text-gray-500"></div>
             {DAYS.map((d) => (
               <div key={d} className="bg-gray-50 p-2 text-center text-xs font-medium text-gray-700">{d}</div>
             ))}
             {PERIODS.map((p, pi) => (
-              <>
-                <div key={`label-${p}`} className="bg-gray-50 p-2 text-center text-xs font-medium text-gray-500 flex items-center justify-center">
+              <Fragment key={`row-${p}`}>
+                <div className="bg-gray-50 p-2 text-center text-xs font-medium text-gray-500 flex items-center justify-center">
                   {p}
                 </div>
                 {DAYS.map((_, di) => {
@@ -319,12 +359,13 @@ export default function Classrooms() {
                     <div
                       key={`${pi}-${di}`}
                       className={`p-2 text-center text-xs min-h-[40px] flex items-center justify-center ${getCellStyle(cell)}`}
+                      title={cell?.courseName || ''}
                     >
                       {cell?.courseName || (cell?.status === 'maintenance' ? '维修' : '空闲')}
                     </div>
                   );
                 })}
-              </>
+              </Fragment>
             ))}
           </div>
         </div>

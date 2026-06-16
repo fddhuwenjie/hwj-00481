@@ -69,6 +69,7 @@ function initTables() {
       student_count INTEGER NOT NULL DEFAULT 0,
       room_requirement TEXT NOT NULL DEFAULT 'normal',
       is_fixed INTEGER NOT NULL DEFAULT 0,
+      max_selection INTEGER NOT NULL DEFAULT 0,
       class_id INTEGER NOT NULL REFERENCES class(id),
       semester_id INTEGER NOT NULL REFERENCES semester(id)
     );
@@ -105,6 +106,56 @@ function initTables() {
       class_id INTEGER NOT NULL REFERENCES class(id),
       message TEXT NOT NULL,
       is_read INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS student (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      student_no TEXT NOT NULL UNIQUE,
+      class_id INTEGER NOT NULL REFERENCES class(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS selection_period (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      start_time TEXT NOT NULL,
+      end_time TEXT NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS course_selection (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL REFERENCES student(id),
+      course_id INTEGER NOT NULL REFERENCES course(id),
+      selected_at TEXT NOT NULL DEFAULT (datetime('now')),
+      status TEXT NOT NULL DEFAULT 'selected',
+      UNIQUE(student_id, course_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS exam (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      course_id INTEGER NOT NULL REFERENCES course(id),
+      exam_date TEXT NOT NULL,
+      start_time TEXT NOT NULL,
+      duration INTEGER NOT NULL,
+      classroom_id INTEGER NOT NULL REFERENCES classroom(id),
+      invigilator_id INTEGER NOT NULL REFERENCES teacher(id),
+      exam_type TEXT NOT NULL DEFAULT 'final',
+      status TEXT NOT NULL DEFAULT 'scheduled'
+    );
+
+    CREATE TABLE IF NOT EXISTS room_booking (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      applicant TEXT NOT NULL,
+      applicant_type TEXT NOT NULL DEFAULT 'teacher',
+      classroom_id INTEGER NOT NULL REFERENCES classroom(id),
+      booking_date TEXT NOT NULL,
+      period_start INTEGER NOT NULL,
+      period_end INTEGER NOT NULL,
+      purpose TEXT NOT NULL,
+      attendees INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'pending',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `)
@@ -152,17 +203,17 @@ function seedData() {
     classrooms.forEach(c => insertClassroom.run(c.code, c.building, c.capacity, c.type, c.equipment))
 
     const courses = [
-      { name: '数据结构与算法', code: 'CS201', credits: 4, hours: 64, teacher_id: 1, student_count: 20, room_requirement: 'multimedia', is_fixed: 1, class_id: 1, semester_id: 1 },
-      { name: '高等数学A', code: 'MA101', credits: 5, hours: 80, teacher_id: 2, student_count: 20, room_requirement: 'lecture', is_fixed: 1, class_id: 1, semester_id: 1 },
-      { name: '大学物理实验', code: 'PH102', credits: 2, hours: 32, teacher_id: 3, student_count: 20, room_requirement: 'lab', is_fixed: 1, class_id: 2, semester_id: 1 },
-      { name: '操作系统', code: 'CS301', credits: 3, hours: 48, teacher_id: 4, student_count: 20, room_requirement: 'multimedia', is_fixed: 0, class_id: 1, semester_id: 1 },
-      { name: '电路分析基础', code: 'EE201', credits: 3, hours: 48, teacher_id: 5, student_count: 20, room_requirement: 'normal', is_fixed: 1, class_id: 2, semester_id: 1 },
-      { name: '数据库原理', code: 'CS302', credits: 3, hours: 48, teacher_id: 1, student_count: 20, room_requirement: 'multimedia', is_fixed: 0, class_id: 3, semester_id: 1 },
-      { name: '线性代数', code: 'MA201', credits: 3, hours: 48, teacher_id: 2, student_count: 20, room_requirement: 'lecture', is_fixed: 1, class_id: 3, semester_id: 1 },
-      { name: '软件工程', code: 'CS401', credits: 3, hours: 48, teacher_id: 4, student_count: 20, room_requirement: 'normal', is_fixed: 0, class_id: 3, semester_id: 1 },
+      { name: '数据结构与算法', code: 'CS201', credits: 4, hours: 64, teacher_id: 1, student_count: 20, room_requirement: 'multimedia', is_fixed: 1, max_selection: 60, class_id: 1, semester_id: 1 },
+      { name: '高等数学A', code: 'MA101', credits: 5, hours: 80, teacher_id: 2, student_count: 20, room_requirement: 'lecture', is_fixed: 1, max_selection: 120, class_id: 1, semester_id: 1 },
+      { name: '大学物理实验', code: 'PH102', credits: 2, hours: 32, teacher_id: 3, student_count: 20, room_requirement: 'lab', is_fixed: 1, max_selection: 30, class_id: 2, semester_id: 1 },
+      { name: '操作系统', code: 'CS301', credits: 3, hours: 48, teacher_id: 4, student_count: 20, room_requirement: 'multimedia', is_fixed: 0, max_selection: 60, class_id: 1, semester_id: 1 },
+      { name: '电路分析基础', code: 'EE201', credits: 3, hours: 48, teacher_id: 5, student_count: 20, room_requirement: 'normal', is_fixed: 1, max_selection: 45, class_id: 2, semester_id: 1 },
+      { name: '数据库原理', code: 'CS302', credits: 3, hours: 48, teacher_id: 1, student_count: 20, room_requirement: 'multimedia', is_fixed: 0, max_selection: 60, class_id: 3, semester_id: 1 },
+      { name: '线性代数', code: 'MA201', credits: 3, hours: 48, teacher_id: 2, student_count: 20, room_requirement: 'lecture', is_fixed: 1, max_selection: 100, class_id: 3, semester_id: 1 },
+      { name: '软件工程', code: 'CS401', credits: 3, hours: 48, teacher_id: 4, student_count: 20, room_requirement: 'normal', is_fixed: 0, max_selection: 80, class_id: 3, semester_id: 1 },
     ]
-    const insertCourse = db.prepare(`INSERT INTO course (name, code, credits, hours, teacher_id, student_count, room_requirement, is_fixed, class_id, semester_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    courses.forEach(c => insertCourse.run(c.name, c.code, c.credits, c.hours, c.teacher_id, c.student_count, c.room_requirement, c.is_fixed, c.class_id, c.semester_id))
+    const insertCourse = db.prepare(`INSERT INTO course (name, code, credits, hours, teacher_id, student_count, room_requirement, is_fixed, max_selection, class_id, semester_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    courses.forEach(c => insertCourse.run(c.name, c.code, c.credits, c.hours, c.teacher_id, c.student_count, c.room_requirement, c.is_fixed, c.max_selection, c.class_id, c.semester_id))
 
     const schedules = [
       { course_id: 1, classroom_id: 1, day_of_week: 1, period_start: 1, period_end: 2, week_start: 1, week_end: 20, week_type: 'all' },
@@ -179,6 +230,56 @@ function seedData() {
     ]
     const insertSchedule = db.prepare(`INSERT INTO schedule (course_id, classroom_id, day_of_week, period_start, period_end, week_start, week_end, week_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
     schedules.forEach(s => insertSchedule.run(s.course_id, s.classroom_id, s.day_of_week, s.period_start, s.period_end, s.week_start, s.week_end, s.week_type))
+
+    const students = [
+      { name: '刘伟', student_no: '2023001', class_id: 1 },
+      { name: '陈静', student_no: '2023002', class_id: 1 },
+      { name: '李强', student_no: '2023003', class_id: 1 },
+      { name: '王芳', student_no: '2023004', class_id: 1 },
+      { name: '赵磊', student_no: '2023005', class_id: 1 },
+      { name: '孙丽', student_no: '2023006', class_id: 2 },
+      { name: '周洋', student_no: '2023007', class_id: 2 },
+      { name: '吴刚', student_no: '2023008', class_id: 2 },
+      { name: '郑慧', student_no: '2023009', class_id: 2 },
+      { name: '马超', student_no: '2023010', class_id: 2 },
+      { name: '黄敏', student_no: '2023011', class_id: 3 },
+      { name: '林涛', student_no: '2023012', class_id: 3 },
+      { name: '何雪', student_no: '2023013', class_id: 3 },
+      { name: '罗杰', student_no: '2023014', class_id: 3 },
+      { name: '谢婷', student_no: '2023015', class_id: 3 },
+    ]
+    const insertStudent = db.prepare('INSERT INTO student (name, student_no, class_id) VALUES (?, ?, ?)')
+    students.forEach(s => insertStudent.run(s.name, s.student_no, s.class_id))
+
+    db.prepare(`INSERT INTO selection_period (name, start_time, end_time, is_active) VALUES (?, ?, ?, ?)`)
+      .run('2025-2026第二学期选课', '2025-06-01 00:00:00', '2025-06-30 23:59:59', 1)
+
+    const selections = [
+      { student_id: 1, course_id: 4, status: 'selected' },
+      { student_id: 2, course_id: 4, status: 'selected' },
+      { student_id: 3, course_id: 6, status: 'selected' },
+      { student_id: 6, course_id: 8, status: 'selected' },
+      { student_id: 7, course_id: 8, status: 'selected' },
+      { student_id: 11, course_id: 4, status: 'selected' },
+    ]
+    const insertSelection = db.prepare('INSERT INTO course_selection (student_id, course_id, status) VALUES (?, ?, ?)')
+    selections.forEach(s => insertSelection.run(s.student_id, s.course_id, s.status))
+
+    const exams = [
+      { course_id: 1, exam_date: '2025-07-01', start_time: '09:00', duration: 120, classroom_id: 2, invigilator_id: 2, exam_type: 'final' },
+      { course_id: 2, exam_date: '2025-07-02', start_time: '09:00', duration: 120, classroom_id: 2, invigilator_id: 5, exam_type: 'final' },
+      { course_id: 3, exam_date: '2025-06-25', start_time: '14:00', duration: 90, classroom_id: 7, invigilator_id: 4, exam_type: 'midterm' },
+      { course_id: 7, exam_date: '2025-07-03', start_time: '09:00', duration: 120, classroom_id: 6, invigilator_id: 1, exam_type: 'final' },
+    ]
+    const insertExam = db.prepare('INSERT INTO exam (course_id, exam_date, start_time, duration, classroom_id, invigilator_id, exam_type) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    exams.forEach(e => insertExam.run(e.course_id, e.exam_date, e.start_time, e.duration, e.classroom_id, e.invigilator_id, e.exam_type))
+
+    const bookings = [
+      { applicant: '计算机协会', applicant_type: 'club', classroom_id: 1, booking_date: '2025-06-20', period_start: 7, period_end: 8, purpose: '技术分享会', attendees: 50, status: 'approved' },
+      { applicant: '李晓华', applicant_type: 'teacher', classroom_id: 3, booking_date: '2025-06-22', period_start: 5, period_end: 6, purpose: '学术讲座', attendees: 40, status: 'pending' },
+    ]
+    const insertBooking = db.prepare('INSERT INTO room_booking (applicant, applicant_type, classroom_id, booking_date, period_start, period_end, purpose, attendees, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    bookings.forEach(b => insertBooking.run(b.applicant, b.applicant_type, b.classroom_id, b.booking_date, b.period_start, b.period_end, b.purpose, b.attendees, b.status))
   })
 
   insert()

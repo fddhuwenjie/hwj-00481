@@ -10,6 +10,9 @@ import {
   GraduationCap,
   User,
   ChevronDown,
+  ClipboardList,
+  FileText,
+  CalendarCheck,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { cn } from '@/lib/utils';
@@ -22,6 +25,9 @@ const navItems = [
   { label: '智能排课', icon: CalendarClock, path: '/scheduling' },
   { label: '课程表视图', icon: Grid3X3, path: '/timetable' },
   { label: '调课管理', icon: ArrowLeftRight, path: '/adjustment' },
+  { label: '选课中心', icon: ClipboardList, path: '/selection' },
+  { label: '考试管理', icon: FileText, path: '/exams' },
+  { label: '教室预约', icon: CalendarCheck, path: '/bookings' },
   { label: '统计分析', icon: BarChart3, path: '/statistics' },
 ];
 
@@ -38,6 +44,9 @@ const pageTitles: Record<string, string> = {
   '/scheduling': '智能排课',
   '/timetable': '课程表视图',
   '/adjustment': '调课管理',
+  '/selection': '选课中心',
+  '/exams': '考试管理',
+  '/bookings': '教室预约',
   '/statistics': '统计分析',
 };
 

@@ -14,6 +14,10 @@ interface AppState {
   selectedClassroomId: number | null;
   notifications: any[];
   adjustments: any[];
+  students: any[];
+  selectionPeriods: any[];
+  exams: any[];
+  bookings: any[];
 
   fetchCourses: () => Promise<void>;
   fetchClassrooms: () => Promise<void>;
@@ -27,6 +31,10 @@ interface AppState {
   setSelectedClassroomId: (id: number | null) => void;
   fetchNotifications: () => Promise<void>;
   fetchAdjustments: () => Promise<void>;
+  fetchStudents: () => Promise<void>;
+  fetchSelectionPeriods: () => Promise<void>;
+  fetchExams: () => Promise<void>;
+  fetchBookings: () => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -42,6 +50,10 @@ export const useAppStore = create<AppState>((set) => ({
   selectedClassroomId: null,
   notifications: [],
   adjustments: [],
+  students: [],
+  selectionPeriods: [],
+  exams: [],
+  bookings: [],
 
   fetchCourses: async () => {
     const courses = await api.getCourses();
@@ -82,5 +94,25 @@ export const useAppStore = create<AppState>((set) => ({
   fetchAdjustments: async () => {
     const adjustments = await api.getAdjustments();
     set({ adjustments });
+  },
+
+  fetchStudents: async () => {
+    const students = await api.getStudents();
+    set({ students });
+  },
+
+  fetchSelectionPeriods: async () => {
+    const selectionPeriods = await api.getSelectionPeriods();
+    set({ selectionPeriods });
+  },
+
+  fetchExams: async () => {
+    const exams = await api.getExams();
+    set({ exams });
+  },
+
+  fetchBookings: async () => {
+    const bookings = await api.getBookings();
+    set({ bookings });
   },
 }));

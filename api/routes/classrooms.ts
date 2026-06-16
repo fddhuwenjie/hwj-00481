@@ -44,15 +44,17 @@ router.delete('/:id', (req: Request, res: Response) => {
 
 router.get('/:id/availability', (req: Request, res: Response) => {
   const db = getDb()
+  const id = req.params.id
   const schedules = db.prepare(`
     SELECT s.*, c.name as course_name
     FROM schedule s
     JOIN course c ON s.course_id = c.id
     WHERE s.classroom_id = ?
-  `).all(req.params.id) as any[]
-  const classroom = db.prepare('SELECT * FROM classroom WHERE id = ?').get(req.params.id)
+  `).all(id) as any[]
+  const classroom = db.prepare('SELECT * FROM classroom WHERE id = ?').get(id)
+  const semester = db.prepare('SELECT * FROM semester WHERE is_current = 1').get() as any
 
-  const slots: { day: number; period: number; status: string; courseName?: string }[] = []
+  const slots: { day: number; period: number; status: string; courseName?: string; entryType?: string }[] = []
   for (const s of schedules) {
     const pairs = Math.ceil((s.period_end - s.period_start + 1) / 2)
     for (let i = 0; i < pairs; i++) {
@@ -60,8 +62,73 @@ router.get('/:id/availability', (req: Request, res: Response) => {
         day: s.day_of_week,
         period: Math.ceil((s.period_start + i * 2) / 2),
         status: 'occupied',
-        courseName: s.course_name
+        courseName: s.course_name,
+        entryType: 'course'
       })
+    }
+  }
+
+  if (semester) {
+    const startDate = new Date(semester.start_date)
+    const endDate = new Date(semester.end_date)
+    const toDateStr = (d: Date) => d.toISOString().split('T')[0]
+
+    const exams = db.prepare(`
+      SELECT e.*, c.name as course_name
+      FROM exam e
+      LEFT JOIN course c ON e.course_id = c.id
+      WHERE e.classroom_id = ? AND e.exam_date >= ? AND e.exam_date <= ?
+    `).all(id, toDateStr(startDate), toDateStr(endDate)) as any[]
+
+    for (const exam of exams) {
+      const examDate = new Date(exam.exam_date)
+      const dayOfWeek = examDate.getDay() || 7
+      const hour = parseInt(exam.start_time.split(':')[0])
+      const minute = parseInt(exam.start_time.split(':')[1])
+      const timeMinutes = hour * 60 + minute
+
+      let periodStart = 1
+      if (timeMinutes >= 480 && timeMinutes < 600) periodStart = 1
+      else if (timeMinutes >= 600 && timeMinutes < 720) periodStart = 3
+      else if (timeMinutes >= 780 && timeMinutes < 900) periodStart = 5
+      else if (timeMinutes >= 900 && timeMinutes < 1020) periodStart = 7
+      else if (timeMinutes >= 1020 && timeMinutes < 1140) periodStart = 9
+      else periodStart = 11
+
+      const durationPeriods = Math.ceil(exam.duration / 90)
+      const periodEnd = periodStart + durationPeriods * 2 - 1
+      const periodPairs = Math.ceil((periodEnd - periodStart + 1) / 2)
+      const startPairIdx = Math.ceil(periodStart / 2)
+      for (let i = 0; i < periodPairs; i++) {
+        slots.push({
+          day: dayOfWeek,
+          period: startPairIdx + i,
+          status: 'occupied',
+          courseName: `考试: ${exam.course_name}`,
+          entryType: 'exam'
+        })
+      }
+    }
+
+    const bookings = db.prepare(`
+      SELECT * FROM room_booking
+      WHERE classroom_id = ? AND booking_date >= ? AND booking_date <= ? AND status = 'approved'
+    `).all(id, toDateStr(startDate), toDateStr(endDate)) as any[]
+
+    for (const booking of bookings) {
+      const bookingDate = new Date(booking.booking_date)
+      const dayOfWeek = bookingDate.getDay() || 7
+      const periodPairs = Math.ceil((booking.period_end - booking.period_start + 1) / 2)
+      const startPairIdx = Math.ceil(booking.period_start / 2)
+      for (let i = 0; i < periodPairs; i++) {
+        slots.push({
+          day: dayOfWeek,
+          period: startPairIdx + i,
+          status: 'occupied',
+          courseName: `活动: ${booking.purpose}`,
+          entryType: 'booking'
+        })
+      }
     }
   }
 
